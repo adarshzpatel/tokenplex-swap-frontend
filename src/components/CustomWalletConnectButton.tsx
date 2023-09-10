@@ -1,3 +1,4 @@
+import useSolBalance from "@/hooks/useSolBalance";
 import {
   Button,
   Dropdown,
@@ -11,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { TbArrowsExchange2, TbCopy, TbLogout } from "react-icons/tb";
 
 const CustomWalletConnectButton = () => {
-
+  const {solBalance} = useSolBalance();
   const { setVisible: setModalVisible } = useWalletModal();
   const {
     buttonState,
@@ -72,7 +73,7 @@ const CustomWalletConnectButton = () => {
           }}
         >
           <DropdownTrigger>
-            <Button variant="bordered" radius="full">{content}</Button>
+            <Button variant="bordered" radius="full" > <span className="font-medium ">{solBalance && ((solBalance/100000000).toFixed(4) + " SOL | ")} </span>{content}</Button>
           </DropdownTrigger>
           <DropdownMenu
             variant="faded"
