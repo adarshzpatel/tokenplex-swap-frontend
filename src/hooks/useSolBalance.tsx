@@ -1,0 +1,25 @@
+import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
+import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
+import { useEffect, useState } from "react";
+
+const useSolBalance = () => {
+  const [solBalance, setSolBalance] = useState(0.0);
+  const { connection } = useConnection();
+  const connectedWallet = useAnchorWallet();
+
+  const getSolBalance = async () => {
+    if (!connectedWallet) return;
+    const bal = await connection.getBalance(connectedWallet?.publicKey);
+    setSolBalance(bal);
+  };
+  useEffect(() => {
+    getSolBalance();
+  }, [connection, connectedWallet]);
+
+  return {
+    solBalance,
+    getSolBalance,
+  };
+};
+
+export default useSolBalance;
