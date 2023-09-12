@@ -1,17 +1,13 @@
-import { getMarketConstants } from "@/hooks/getMarketConstants";
-import { OWNER_KEYPAIR, PROGRAM_ID, markets } from "@/solana/config";
-import { IDL, TokenplexExchange } from "@/solana/tokenplex_exchange";
-import {
-  fetchTokenBalance,
-  createAssociatedTokenAccount,
-  mintTo,
-} from "@/solana/utils";
+import { PROGRAM_ID, markets } from "@/solana/config";
+import { IDL } from "@/solana/tokenplex_exchange";
+import { fetchTokenBalance, mintTo } from "@/solana/utils";
 import {
   Button,
   Divider,
   Select,
   SelectItem,
   Selection,
+  Spinner,
   button,
 } from "@nextui-org/react";
 import {
@@ -21,17 +17,16 @@ import {
   web3,
   Wallet,
 } from "@project-serum/anchor";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { Keypair, PublicKey } from "@solana/web3.js";
-import { ChangeEvent, useEffect, useState } from "react";
-import * as spl from "@solana/spl-token";
-import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
-import { AnchorWallet } from "@switchboard-xyz/solana.js";
+import { PublicKey } from "@solana/web3.js";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 type Balances = { pcBalance: string; coinBalance: string };
 
 const Airdrop = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
   const [values, setValues] = useState({
@@ -63,7 +58,7 @@ const Airdrop = () => {
         connection
       );
 
-      setBalances(prev => ({
+      setBalances((prev) => ({
         ...prev,
         pcBalance: (Number(pcBalance) / selectedMarket.pcLotSize).toFixed(2),
       }));
@@ -83,52 +78,49 @@ const Airdrop = () => {
         new PublicKey(selectedMarket.coinMint),
         connection
       );
-      setBalances(prev => ({
+      setBalances((prev) => ({
         ...prev,
-        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(2)
+        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(
+          2
+        ),
       }));
+
     } catch (err) {
       console.log("Error in getPcBalance", err);
     }
   };
 
-  const airdropToken = async (mint: string,amount:number) => {
-    const data = {
-      destinationAddress: connectedWallet?.publicKey,
-      mint,
-      amount
-    };
-    console.log(data);
-    const res = await fetch("/api/airdrop", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    console.log(res.json());
-    await getPcBalance();
-    await getCoinBalance();
-  };
-
-  const doSomething = async () => {
-    if(!connectedWallet) return 
-    const provider = new AnchorProvider(connection,connectedWallet,AnchorProvider.defaultOptions());
-    const program = new Program(IDL,PROGRAM_ID,provider);
-    const market = await program.account.market.fetch(selectedMarket.market);
-    console.log(market.pcLotSize.toString())
-    console.log(market.coinLotSize.toString())
+  const airdropToken = async (mint: string, amount: number) => {
+    try {
+      setIsLoading(true);
+      const data = {
+        destinationAddress: connectedWallet?.publicKey,
+        mint,
+        amount,
+      };
+      console.log(data);
+      const res = await axios.post("/api/airdrop", data);
+      console.log(res.data);
+      await getPcBalance();
+      await getCoinBalance();
+      toast("Airdrop Successful ✅")
+    } catch (err) {
+      toast.error("Failed to send airdrop!!");
+      console.log(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    if(connectedWallet && selectedMarket) {
+    if (connectedWallet && selectedMarket) {
       getPcBalance();
       getCoinBalance();
     }
   }, [selectedMarket, connectedWallet]);
 
   return (
-    <div className="overflow-hidden flex flex-col gap-4 p-6 border border-default-200 rounded-2xl bg-gradient-to-br max-w-md w-full from-default-100/75 via-black to-default-100/75">
+    <div className="overflow-hidden relative flex flex-col gap-4 p-6 border border-default-200 rounded-2xl bg-gradient-to-br max-w-md w-full from-default-100/75 via-black to-default-100/75">
       {/* PAY SECTION */}
       <div className="flex items-center justify-between">
         <p className="text-2xl font-medium whitespace-nowrap">Airdrop Tokens</p>
@@ -172,10 +164,7 @@ const Airdrop = () => {
         <p className="text-xs text-default-600">{selectedMarket.pcMint}</p>
         <Button
           onClick={() =>
-            airdropToken(
-              selectedMarket.pcMint,
-              1000 * selectedMarket.pcLotSize
-            )
+            airdropToken(selectedMarket.pcMint, 1000 * selectedMarket.pcLotSize)
           }
           size="sm"
           className="my-2"
@@ -203,7 +192,12 @@ const Airdrop = () => {
         </Button>
         <p>Balance : {balances.coinBalance}</p>
       </div>
-      <Button onClick={doSomething}>Do thing</Button>
+      {isLoading && (
+        <div className="w-full h-full backdrop-blur-xl z-10 absolute bg-black/50 top-0 left-0 scale-[0.995] rounded-xl flex flex-col items-center justify-center gap-4">
+          <Spinner size="lg" />
+          <p>Loading...</p>
+        </div>
+      )}
     </div>
   );
 };

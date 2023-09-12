@@ -4,26 +4,40 @@ import { IDL } from "@/solana/tokenplex_exchange";
 import { fetchTokenBalance } from "@/solana/utils";
 import {
   Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Select,
   SelectItem,
   Selection,
+  Spinner,
   button,
+  useDisclosure,
 } from "@nextui-org/react";
 import { AnchorProvider, BN, Program, web3 } from "@project-serum/anchor";
-import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { ChangeEvent, useEffect, useState } from "react";
+import axios from "axios";
+import Link from "next/link";
+import {  useEffect, useState } from "react";
+import toast from "react-hot-toast";
+
 
 type Balances = { pcBalance: string; coinBalance: string };
 
 const Swap = () => {
+  const {isOpen,onOpen,onOpenChange,onClose} = useDisclosure()
+  const [isLoading, setIsLoading] = useState(false);
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
+  const [tx,setTx] = useState("");
   const [values, setValues] = useState({
-    pcQty: "0.0",
-    coinQty: "0.0",
-    conversionRate: 2,
+    pcQty: "0.00",
+    coinQty: "0.00",
+    conversionRate: "0.00",
   });
 
   const [marketName, setMarketName] = useState<Selection>(
@@ -35,17 +49,25 @@ const Swap = () => {
     coinBalance: "0.00",
   });
 
-  const handlePcInput = (e: ChangeEvent<HTMLInputElement>) => {
-    const newPcQty = Number(e.target.value);
-    setValues((values) => ({
-      ...values,
-      pcQty: newPcQty.toString(),
-      coinQty: ((values.conversionRate * newPcQty)).toString(),
+  const closeModal = ()=> {
+    setTx("");
+    onClose();
+  }
+  const previewSwap = async () => {
+    setIsLoading(true)
+    const oraclePrice = (await axios.get("/api/price")).data.price;
+    const conversionRate = Number(oraclePrice);
+    setValues((prev) => ({
+      ...prev,
+      coinQty: (Number(prev.pcQty) / conversionRate).toFixed(6),
+      conversionRate: conversionRate.toString(),
     }));
+    setIsLoading(false)
   };
 
   const getPcBalance = async () => {
     try {
+
       if (!connectedWallet?.publicKey) {
         alert("No wallet found");
         return;
@@ -57,7 +79,7 @@ const Swap = () => {
         connection
       );
 
-      setBalances(prev => ({
+      setBalances((prev) => ({
         ...prev,
         pcBalance: (Number(pcBalance) / selectedMarket.pcLotSize).toFixed(2),
       }));
@@ -71,25 +93,26 @@ const Swap = () => {
         alert("No wallet found");
         return;
       }
-
       const coinBalance = await fetchTokenBalance(
         connectedWallet.publicKey,
         new PublicKey(selectedMarket.coinMint),
         connection
       );
-      setBalances(prev => ({
+      setBalances((prev) => ({
         ...prev,
-        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(2)
+        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(
+          2
+        ),
       }));
     } catch (err) {
       console.log("Error in getPcBalance", err);
     }
   };
-  
+
   const handleSwap = async () => {
     try {
       if (!connectedWallet) throw new Error("Wallet Not Found!");
-      
+
       const provider = new AnchorProvider(
         connection,
         connectedWallet,
@@ -110,7 +133,6 @@ const Swap = () => {
         ],
         program.programId
       );
-      console.log({ openOrdersPda });
       if (!openOrdersPda || !selectedMarket?.pcMint)
         throw new Error("No open orders found");
 
@@ -120,13 +142,13 @@ const Swap = () => {
         true
       );
 
+      console.log({ values });
       const tx = await program.methods
         .newOrder(
           { bid: {} },
-          new BN(values.conversionRate),
-          new BN(values.coinQty),
-          new BN(values.pcQty)
-            .mul(new BN(values.conversionRate)),
+          new BN(Number(values.conversionRate)),
+          new BN(Number(values.coinQty)),
+          new BN(Number(values.pcQty)),
           { limit: {} }
         )
         .accounts({
@@ -145,28 +167,31 @@ const Swap = () => {
         })
         .rpc();
       console.log("Swapped", tx);
+      toast("Swap successfull ✅")
+      setTx(tx);
+      onOpen() // open Modal
       getPcBalance();
       getCoinBalance();
     } catch (err: any) {
+      toast.error("Something went wrong while Swapping !")
       console.error(err);
     }
   };
 
   useEffect(() => {
-    if (connectedWallet && selectedMarket){
+    if (connectedWallet && selectedMarket) {
       getPcBalance();
       getCoinBalance();
-    };
+    }
   }, [selectedMarket, connectedWallet]);
 
   return (
-    <div className="overflow-hidden border border-default-200 rounded-2xl bg-gradient-to-br max-w-md w-full from-default-50 to-black">
+    <div className="overflow-hidden relative border border-default-200 rounded-2xl bg-gradient-to-br max-w-md w-full from-default-50 to-black">
       <div className="p-6  space-y-4">
         {/* PAY SECTION */}
         <div className="flex items-center justify-between">
           <p className="text-2xl font-medium whitespace-nowrap">Swap Tokens</p>
           <Select
-
             selectedKeys={marketName}
             onSelectionChange={(keys) => {
               console.log(keys);
@@ -204,13 +229,18 @@ const Swap = () => {
             <input
               value={values.pcQty}
               type="number"
-              step={0.01}
               min={0.0}
-              onChange={handlePcInput}
+              onChange={(e) =>
+                setValues((val) => ({
+                  ...val,
+                  conversionRate: "0.00",
+                  pcQty: e.target.value.toString(),
+                }))
+              }
               className="bg-transparent w-52 outline-none text-3xl font-bold block placeholder:text-gray-500"
               placeholder="0.0000"
             />
-            <div className={`${button({ variant: "flat", size: "sm" })}`}>
+            <div className={`${button({ variant: "faded", size: "sm" })}`}>
               {selectedMarket.pcToken}
             </div>
           </div>
@@ -231,7 +261,7 @@ const Swap = () => {
               placeholder="0.0000"
             />
 
-            <div className={`${button({ variant: "flat", size: "sm" })}`}>
+            <div className={`${button({ variant: "faded", size: "sm" })}`}>
               {selectedMarket.coinToken}
             </div>
           </div>
@@ -241,24 +271,54 @@ const Swap = () => {
         </div>
         {/* SWAP BUTTON */}
         <Button
-          onClick={handleSwap}
+          isDisabled={Number(values.pcQty) <= 0}
+          onClick={values.conversionRate === "0.00" ? previewSwap : handleSwap}
           variant="solid"
           color="primary"
           fullWidth
           size="lg"
+          radius="md"
         >
-          SWAP
+          {values.conversionRate !== "0.00" ? "SWAP" : "Preview Swap"}
         </Button>
       </div>
 
-      <div className="px-6 py-4 text-default-500 items-center bg-gradient-to-b border-tr from-default-50 border-t to-black border-default-200 flex justify-between">
-        {/* CONVERSION RATE */}
-        <p>Conversion Rate </p>
-        <p className="text-sm">
-          1 {selectedMarket.pcToken} = {values.conversionRate}{" "}
-          {selectedMarket.coinToken}
-        </p>
-      </div>
+      {values.conversionRate !== "0.00" && (
+        <div className="px-6 py-4 text-default-500 items-center bg-gradient-to-b border-tr from-default-50 border-t to-black border-default-200 flex justify-between">
+          {/* CONVERSION RATE */}
+          <p>Conversion Rate </p>
+          <p className="text-sm">
+            1 {selectedMarket.coinToken} = {values.conversionRate}{" "}
+            {selectedMarket.pcToken}
+          </p>
+        </div>
+      )}
+      {isLoading && (
+        <div className="w-full h-full backdrop-blur-xl z-10 absolute bg-black/50 top-0 left-0 scale-[0.995] rounded-xl flex flex-col items-center justify-center gap-4">
+          <Spinner size="lg" />
+          <p>Loading...</p>
+        </div>
+      )}
+
+      <Modal backdrop="blur"  isOpen={isOpen} onOpenChange={onOpenChange} onClose={closeModal}>
+        <ModalContent>
+
+              <ModalHeader className="flex flex-col gap-1">Swap Successfull ✅</ModalHeader>
+              <ModalBody>
+               Tx: <span className="text-gray-400"> {tx}</span>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={closeModal}>
+                  Close
+                </Button>
+                <Link className={button({color:"primary"})} color="primary" target="_blank"  href={`https://solscan.io/tx/${tx}?cluster=devnet`}>
+                  See Tx in Explorer
+                </Link>
+              </ModalFooter>
+
+
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

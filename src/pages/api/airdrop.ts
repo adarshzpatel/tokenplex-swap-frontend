@@ -13,10 +13,11 @@ export default async function handler(
   res: NextApiResponse<any>
 ) {
   const destinationAddress = req.body?.destinationAddress;
-  const destination = new PublicKey(destinationAddress);
   const mint = req.body?.mint;
   const amount = Number(req.body?.amount);
-  const authority = OWNER_KEYPAIR;
+  if(!destinationAddress || !mint || !amount) res.status(500).send("Invalid inputs");
+  
+  const destination = new PublicKey(destinationAddress);
   const wallet = new Wallet(OWNER_KEYPAIR);
   const connection = new Connection("https://api.devnet.solana.com",{commitment:'confirmed'});
   const provider = new AnchorProvider(connection,wallet,AnchorProvider.defaultOptions());

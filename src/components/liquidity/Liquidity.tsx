@@ -4,31 +4,39 @@ import { IDL } from "@/solana/tokenplex_exchange";
 import { fetchTokenBalance } from "@/solana/utils";
 import {
   Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Select,
   SelectItem,
   Selection,
   button,
+  useDisclosure,
 } from "@nextui-org/react";
 import { AnchorProvider, BN, Program, web3 } from "@project-serum/anchor";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
+import Link from "next/link";
 import { ChangeEvent, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 type Balances = { pcBalance: string; coinBalance: string };
 
 const Liquidity = () => {
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
   const [values, setValues] = useState({
-    pcQty: "0.0",
     coinQty: "0.0",
-    conversionRate: 2,
   });
 
   const [marketName, setMarketName] = useState<Selection>(
     new Set([markets[0].market])
   );
+  const [tx, setTx] = useState("");
   const [selectedMarket, setSelectedMarket] = useState(markets[0]);
   const [balances, setBalances] = useState<Balances>({
     pcBalance: "0.00",
@@ -40,31 +48,37 @@ const Liquidity = () => {
     setValues((values) => ({
       ...values,
       coinQty: newPcQty.toString(),
-      pcQty: ((values.conversionRate * newPcQty)).toString(),
     }));
   };
 
-  const getPcBalance = async () => {
-    try {
-      if (!connectedWallet?.publicKey) {
-        alert("No wallet found");
-        return;
-      }
-
-      const pcBalance = await fetchTokenBalance(
-        connectedWallet?.publicKey,
-        new PublicKey(selectedMarket.pcMint),
-        connection
-      );
-
-      setBalances(prev => ({
-        ...prev,
-        pcBalance: (Number(pcBalance) / selectedMarket.pcLotSize).toFixed(2),
-      }));
-    } catch (err) {
-      console.log("Error in getPcBalance", err);
-    }
+  const closeModal = () => {
+    setTx("");
+    onClose();
+    setValues({
+      coinQty: "0.0",
+    })
   };
+  // const getPcBalance = async () => {
+  //   try {
+  //     if (!connectedWallet?.publicKey) {
+  //       alert("No wallet found");
+  //       return;
+  //     }
+
+  //     const pcBalance = await fetchTokenBalance(
+  //       connectedWallet?.publicKey,
+  //       new PublicKey(selectedMarket.pcMint),
+  //       connection
+  //     );
+
+  //     setBalances(prev => ({
+  //       ...prev,
+  //       pcBalance: (Number(pcBalance) / selectedMarket.pcLotSize).toFixed(2),
+  //     }));
+  //   } catch (err) {
+  //     console.log("Error in getPcBalance", err);
+  //   }
+  // };
   const getCoinBalance = async () => {
     try {
       if (!connectedWallet?.publicKey) {
@@ -77,19 +91,21 @@ const Liquidity = () => {
         new PublicKey(selectedMarket.coinMint),
         connection
       );
-      setBalances(prev => ({
+      setBalances((prev) => ({
         ...prev,
-        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(2)
+        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(
+          2
+        ),
       }));
     } catch (err) {
       console.log("Error in getPcBalance", err);
     }
   };
-  
+
   const handleSupply = async () => {
     try {
       if (!connectedWallet) throw new Error("Wallet Not Found!");
-      
+
       const provider = new AnchorProvider(
         connection,
         connectedWallet,
@@ -101,7 +117,6 @@ const Liquidity = () => {
       const marketConstants = await getMarketConstants(marketPda, program);
       if (!marketConstants) return;
 
-      console.log("MARKET CONSTANTS", JSON.stringify(marketConstants, null, 2));
       const [openOrdersPda] = await web3.PublicKey.findProgramAddress(
         [
           Buffer.from("open-orders", "utf-8"),
@@ -110,7 +125,7 @@ const Liquidity = () => {
         ],
         program.programId
       );
-      console.log({ openOrdersPda });
+
       if (!openOrdersPda || !selectedMarket?.pcMint)
         throw new Error("No open orders found");
 
@@ -121,14 +136,9 @@ const Liquidity = () => {
       );
 
       const tx = await program.methods
-        .newOrder(
-          { ask: {} },
-          new BN(values.coinQty),
-          new BN(values.pcQty),
-          new BN(values.coinQty)
-            .mul(new BN(values.conversionRate)),
-          { limit: {} }
-        )
+        .newOrder({ ask: {} }, new BN(1), new BN(values.coinQty), new BN(1), {
+          limit: {},
+        })
         .accounts({
           openOrders: openOrdersPda,
           market: marketPda,
@@ -144,19 +154,22 @@ const Liquidity = () => {
           authority: connectedWallet.publicKey,
         })
         .rpc();
+      setTx(tx);
+      onOpen();
+      toast("Supply Successful ✅");
       console.log("Supplied", tx);
-      getPcBalance();
+      // getPcBalance();
       getCoinBalance();
     } catch (err: any) {
+      toast.error("Something went wrong");
       console.error(err);
     }
   };
 
   useEffect(() => {
-    if (connectedWallet && selectedMarket){
-      getPcBalance();
+    if (connectedWallet && selectedMarket) {
       getCoinBalance();
-    };
+    }
   }, [selectedMarket, connectedWallet]);
 
   return (
@@ -164,7 +177,9 @@ const Liquidity = () => {
       <div className="p-6  space-y-4">
         {/* PAY SECTION */}
         <div className="flex items-center justify-between">
-          <p className="text-2xl font-medium whitespace-nowrap">Swap Tokens</p>
+          <p className="text-2xl font-medium whitespace-nowrap">
+            Supply Tokens
+          </p>
           <Select
             selectedKeys={marketName}
             onSelectionChange={(keys) => {
@@ -201,8 +216,7 @@ const Liquidity = () => {
           <p className="text-sm text-default-600">You send</p>
           <div className="flex justify-between">
             <input
-              type="text"
-              
+              type="number"
               value={values.coinQty}
               onChange={handleCoinInput}
               className="bg-transparent w-52 outline-none text-3xl font-bold block placeholder:text-gray-500"
@@ -217,7 +231,7 @@ const Liquidity = () => {
             Balance : {balances.coinBalance} {selectedMarket.coinToken}
           </p>
         </div>
-        <div className="p-4 bg-default-100/75 rounded-xl space-y-1 ">
+        {/* <div className="p-4 bg-default-100/75 rounded-xl space-y-1 ">
           <p className="text-sm text-default-600">You receive</p>
           <div className="flex justify-between">
             <input
@@ -237,16 +251,18 @@ const Liquidity = () => {
           <p className="text-sm text-gray-400">
             Balance : {balances.pcBalance} {selectedMarket.pcToken}
           </p>
-        </div>
-        {/* SWAP BUTTON */}
+        </div> */}
+
         <Button
           onClick={handleSupply}
           variant="solid"
           color="primary"
           fullWidth
           size="lg"
+          radius="sm"
+          isDisabled={Number(values.coinQty) === 0}
         >
-          SWAP
+          SUPPLY
         </Button>
       </div>
 
@@ -258,6 +274,35 @@ const Liquidity = () => {
           {selectedMarket.coinToken}
         </p>
       </div>
+      <Modal
+        backdrop="blur"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        onClose={closeModal}
+
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            Swap Successfull ✅
+          </ModalHeader>
+          <ModalBody>
+            Tx: <p className="text-gray-400"> {tx.slice(0,15)}....{tx.slice(-15)}</p>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="danger" variant="light" onPress={closeModal}>
+              Close
+            </Button>
+            <Link
+              className={button({ color: "primary" })}
+              color="primary"
+              target="_blank"
+              href={`https://solscan.io/tx/${tx}?cluster=devnet`}
+            >
+              See Tx in Explorer
+            </Link>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 };
