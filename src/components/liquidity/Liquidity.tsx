@@ -266,14 +266,6 @@ const Liquidity = () => {
         </Button>
       </div>
 
-      <div className="px-6 py-4 text-default-500 items-center bg-gradient-to-b border-tr from-default-50 border-t to-black border-default-200 flex justify-between">
-        {/* CONVERSION RATE */}
-        <p>Conversion Rate </p>
-        <p className="text-sm">
-          1 {selectedMarket.pcToken} = {values.conversionRate}{" "}
-          {selectedMarket.coinToken}
-        </p>
-      </div>
       <Modal
         backdrop="blur"
         isOpen={isOpen}
