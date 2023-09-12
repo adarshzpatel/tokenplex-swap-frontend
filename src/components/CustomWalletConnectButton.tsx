@@ -73,7 +73,7 @@ const CustomWalletConnectButton = () => {
           }}
         >
           <DropdownTrigger>
-            <Button variant="bordered" radius="full" > <span className="font-medium ">{solBalance && ((solBalance/100000000).toFixed(4) + " SOL | ")} </span>{content}</Button>
+            <Button variant="bordered" radius="full" > <span className="font-medium hidden sm:block">{solBalance && ((solBalance/1000000000).toFixed(4) + " SOL | ")} </span>{content}</Button>
           </DropdownTrigger>
           <DropdownMenu
             variant="faded"

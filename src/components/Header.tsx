@@ -25,6 +25,7 @@ const Header = ({ setMode }: Props) => {
         >
           <Tab key="swap" title="Swap" />
           <Tab key="supply" title="Supply" />
+          <Tab key="airdrop" title="Airdrop test tokens" />
         </Tabs>
       </NavbarContent>
       <NavbarContent justify="end">

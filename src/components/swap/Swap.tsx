@@ -1,29 +1,38 @@
-import { marketConstants } from "@/solana/config";
-import { createNewAskOrder } from "@/solana/instructions";
+import { getMarketConstants } from "@/hooks/getMarketConstants";
+import { PROGRAM_ID, markets } from "@/solana/config";
 import { IDL } from "@/solana/tokenplex_exchange";
-import { Button, Select, SelectItem, button } from "@nextui-org/react";
-import { AnchorProvider, BN, Program } from "@project-serum/anchor";
+import { fetchTokenBalance } from "@/solana/utils";
+import {
+  Button,
+  Select,
+  SelectItem,
+  Selection,
+  button,
+} from "@nextui-org/react";
+import { AnchorProvider, BN, Program, web3 } from "@project-serum/anchor";
+import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { ChangeEvent, useState } from "react";
+import { PublicKey } from "@solana/web3.js";
+import { ChangeEvent, useEffect, useState } from "react";
 
-const pcTokens = [
-  { label: "USDC", value: "usdc" },
-  { label: "SOL", value: "sol" },
-];
-const coinTokens = [
-  { label: "BONK", value: "bonk" },
-  { label: "DOGE", value: "doge" },
-];
+type Balances = { pcBalance: string; coinBalance: string };
 
 const Swap = () => {
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
   const [values, setValues] = useState({
-    pcName: "USDC",
-    coinName: "DOGE",
     pcQty: "0.0",
     coinQty: "0.0",
-    conversionRate: 1.45,
+    conversionRate: 2,
+  });
+
+  const [marketName, setMarketName] = useState<Selection>(
+    new Set([markets[0].market])
+  );
+  const [selectedMarket, setSelectedMarket] = useState(markets[0]);
+  const [balances, setBalances] = useState<Balances>({
+    pcBalance: "0.00",
+    coinBalance: "0.00",
   });
 
   const handlePcInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -31,38 +40,164 @@ const Swap = () => {
     setValues((values) => ({
       ...values,
       pcQty: newPcQty.toString(),
-      coinQty: (values.conversionRate * newPcQty).toString(),
+      coinQty: ((values.conversionRate * newPcQty)).toString(),
     }));
   };
 
-  const getPcBalance = async () => {};
+  const getPcBalance = async () => {
+    try {
+      if (!connectedWallet?.publicKey) {
+        alert("No wallet found");
+        return;
+      }
 
-  const getCoinBalance = async () => {};
+      const pcBalance = await fetchTokenBalance(
+        connectedWallet?.publicKey,
+        new PublicKey(selectedMarket.pcMint),
+        connection
+      );
 
+      setBalances(prev => ({
+        ...prev,
+        pcBalance: (Number(pcBalance) / selectedMarket.pcLotSize).toFixed(2),
+      }));
+    } catch (err) {
+      console.log("Error in getPcBalance", err);
+    }
+  };
+  const getCoinBalance = async () => {
+    try {
+      if (!connectedWallet?.publicKey) {
+        alert("No wallet found");
+        return;
+      }
+
+      const coinBalance = await fetchTokenBalance(
+        connectedWallet.publicKey,
+        new PublicKey(selectedMarket.coinMint),
+        connection
+      );
+      setBalances(prev => ({
+        ...prev,
+        coinBalance: (Number(coinBalance) / selectedMarket.coinLotSize).toFixed(2)
+      }));
+    } catch (err) {
+      console.log("Error in getPcBalance", err);
+    }
+  };
+  
   const handleSwap = async () => {
-    // const conversionRate = new BN(Number(values.conversionRate)) // Limit Price
-    // const coinQty = new BN(Number(values.coinQty));
-    // const pcQty = new BN(Number(values.pcQty));
     try {
       if (!connectedWallet) throw new Error("Wallet Not Found!");
+      
       const provider = new AnchorProvider(
         connection,
         connectedWallet,
         AnchorProvider.defaultOptions()
       );
-      const program = new Program(IDL, marketConstants.programId, provider);
-      console.log(connection.getBalance(connectedWallet.publicKey));
+
+      const program = new Program(IDL, PROGRAM_ID, provider);
+      const marketPda = new PublicKey(selectedMarket?.market);
+      const marketConstants = await getMarketConstants(marketPda, program);
+      if (!marketConstants) return;
+
+      console.log("MARKET CONSTANTS", JSON.stringify(marketConstants, null, 2));
+      const [openOrdersPda] = await web3.PublicKey.findProgramAddress(
+        [
+          Buffer.from("open-orders", "utf-8"),
+          marketPda.toBuffer(),
+          connectedWallet.publicKey.toBuffer(),
+        ],
+        program.programId
+      );
+      console.log({ openOrdersPda });
+      if (!openOrdersPda || !selectedMarket?.pcMint)
+        throw new Error("No open orders found");
+
+      const authorityPCTokenAccount = await getAssociatedTokenAddress(
+        new web3.PublicKey(selectedMarket?.pcMint),
+        connectedWallet.publicKey,
+        true
+      );
+
+      const tx = await program.methods
+        .newOrder(
+          { bid: {} },
+          new BN(values.conversionRate),
+          new BN(values.coinQty),
+          new BN(values.pcQty)
+            .mul(new BN(values.conversionRate)),
+          { limit: {} }
+        )
+        .accounts({
+          openOrders: openOrdersPda,
+          market: marketPda,
+          coinVault: marketConstants?.coinVault,
+          pcVault: marketConstants?.pcVault,
+          coinMint: marketConstants?.coinMint,
+          pcMint: marketConstants?.pcMint,
+          payer: authorityPCTokenAccount,
+          bids: marketConstants?.bids,
+          asks: marketConstants?.asks,
+          reqQ: marketConstants?.reqQ,
+          eventQ: marketConstants?.eventQ,
+          authority: connectedWallet.publicKey,
+        })
+        .rpc();
+      console.log("Swapped", tx);
+      getPcBalance();
+      getCoinBalance();
     } catch (err: any) {
       console.error(err);
-      alert("Check console for error");
     }
   };
+
+  useEffect(() => {
+    if (connectedWallet && selectedMarket){
+      getPcBalance();
+      getCoinBalance();
+    };
+  }, [selectedMarket, connectedWallet]);
 
   return (
     <div className="overflow-hidden border border-default-200 rounded-2xl bg-gradient-to-br max-w-md w-full from-default-50 to-black">
       <div className="p-6  space-y-4">
         {/* PAY SECTION */}
-        <p className="text-xl font-medium">Swap Tokens</p>
+        <div className="flex items-center justify-between">
+          <p className="text-2xl font-medium whitespace-nowrap">Swap Tokens</p>
+          <Select
+
+            selectedKeys={marketName}
+            onSelectionChange={(keys) => {
+              console.log(keys);
+              const marketPubKey = Array.from(keys)[0];
+              const selectedMarket = markets.find(
+                (it) => it.market === marketPubKey
+              );
+              if (!selectedMarket) return;
+              setSelectedMarket(selectedMarket);
+              setMarketName(keys);
+            }}
+            className="w-40"
+            size="md"
+            selectionMode="single"
+            labelPlacement="outside"
+            aria-label="select-market"
+            variant="faded"
+          >
+            {markets.map((m) => (
+              <SelectItem
+                aria-label={`${m.coinToken} / ${m.pcToken}`}
+                key={m.market}
+                value={m.market}
+                textValue={`${m.coinToken} / ${m.pcToken}`}
+              >
+                {m.coinToken} / {m.pcToken}
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+
         <div className="p-4 bg-default-100/75 rounded-xl space-y-1 ">
           <p className="text-sm text-default-600">You pay</p>
           <div className="flex justify-between">
@@ -75,29 +210,13 @@ const Swap = () => {
               className="bg-transparent w-52 outline-none text-3xl font-bold block placeholder:text-gray-500"
               placeholder="0.0000"
             />
-            {/* <div className={`${button({ variant: "flat", size: "lg" })}`}>
-              <img
-                src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=026"
-                alt=""
-                className="h-6 w-6 "
-              />
-              {values.pcName}
-            </div> */}
-            {/* <Select
-              variant="flat"
-              labelPlacement="outside"
-              items={pcTokens}
-              size="lg"
-              selectedKeys={}
-              multiple={false}
-            >
-              {(token) => (
-                <SelectItem key={token.value}>{token.label}</SelectItem>
-              )}
-            </Select> */}
+            <div className={`${button({ variant: "flat", size: "sm" })}`}>
+              {selectedMarket.pcToken}
+            </div>
           </div>
+
           <p className="text-sm text-gray-400">
-            Balance : 0.00 {values.pcName}
+            Balance : {balances.pcBalance} {selectedMarket.pcToken}
           </p>
         </div>
         {/* RECEIVE SECTION */}
@@ -111,27 +230,13 @@ const Swap = () => {
               className="bg-transparent w-52 outline-none text-3xl font-bold block placeholder:text-gray-500"
               placeholder="0.0000"
             />
-            {/* DROPDOWN */}
-            {/* <Select
-              variant="bordered"
-              labelPlacement="outside"
-              items={coinTokens}
-            >
-              {(token) => (
-                <SelectItem key={token.value}>{token.label}</SelectItem>
-              )}
-            </Select> */}
-            <div className={`${button({ variant: "flat", size: "lg" })}`}>
-              <img
-                src="https://cryptologos.cc/logos/versions/dogecoin-doge-logo-alternative.svg?v=026"
-                alt=""
-                className="h-6 w-6 "
-              />
-              {values.coinName}
+
+            <div className={`${button({ variant: "flat", size: "sm" })}`}>
+              {selectedMarket.coinToken}
             </div>
           </div>
           <p className="text-sm text-gray-400">
-            Balance : 0.00 {values.coinName}
+            Balance : {balances.coinBalance} {selectedMarket.coinToken}
           </p>
         </div>
         {/* SWAP BUTTON */}
@@ -142,7 +247,7 @@ const Swap = () => {
           fullWidth
           size="lg"
         >
-          Calculate Price
+          SWAP
         </Button>
       </div>
 
@@ -150,8 +255,8 @@ const Swap = () => {
         {/* CONVERSION RATE */}
         <p>Conversion Rate </p>
         <p className="text-sm">
-          1 {values.pcName} = {values.conversionRate.toFixed(4)}{" "}
-          {values.coinName}
+          1 {selectedMarket.pcToken} = {values.conversionRate}{" "}
+          {selectedMarket.coinToken}
         </p>
       </div>
     </div>
