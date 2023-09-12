@@ -86,7 +86,7 @@ const Liquidity = () => {
     }
   };
   
-  const handleSwap = async () => {
+  const handleSupply = async () => {
     try {
       if (!connectedWallet) throw new Error("Wallet Not Found!");
       
@@ -240,7 +240,7 @@ const Liquidity = () => {
         </div>
         {/* SWAP BUTTON */}
         <Button
-          onClick={handleSwap}
+          onClick={handleSupply}
           variant="solid"
           color="primary"
           fullWidth

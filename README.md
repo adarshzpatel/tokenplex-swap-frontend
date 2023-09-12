@@ -1,8 +1,6 @@
-# TODOS - Sep 10 
-[] deploy new program to devnet & create a market 
-[] Write functions to getPcBalance and getTokenBalance 
-[] Add validation for input 
-  - check if proper decimal 
-  - check if less than balance 
-[] handle bid & ask orders from frontend 
-[] get oracle price from switchboard 
+#Run on local 
+
+1. clone the repo
+2. run `npm install`
+3. run `npm run dev`
+
