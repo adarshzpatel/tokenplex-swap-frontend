@@ -1,4 +1,5 @@
 import { Keypair, PublicKey } from "@solana/web3.js";
+import { Market } from "./types";
 
 export const DATA_FEE_PUBLIC_KEY =
   "FoBK7CgwobLrEfGC8MaGFpYxhucCo1DBhAm5EEvUPD2i";
@@ -14,7 +15,7 @@ export const OWNER_KEYPAIR = Keypair.fromSecretKey(
   ])
 );
 
-export const markets = [
+export const markets:Market[] = [
   {
     market: "2236vbru7CFpCk5eNyRFgpC21nXCHH7ds3saQ7TjwDww",
     pcToken: "USDC",
