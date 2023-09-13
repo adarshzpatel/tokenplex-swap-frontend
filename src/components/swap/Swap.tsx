@@ -1,5 +1,5 @@
 import { getMarketConstants } from "@/hooks/getMarketConstants";
-import { PROGRAM_ID, markets } from "@/solana/config";
+import { DATA_FEE_PUBLIC_KEY, PROGRAM_ID, markets } from "@/solana/config";
 import { IDL } from "@/solana/tokenplex_exchange";
 import { fetchTokenBalance } from "@/solana/utils";
 import {
@@ -19,21 +19,24 @@ import {
 import { AnchorProvider, BN, Program, web3 } from "@project-serum/anchor";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import {
+  AggregatorAccount,
+  SwitchboardProgram,
+} from "@switchboard-xyz/solana.js";
 import axios from "axios";
 import Link from "next/link";
-import {  useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-
 
 type Balances = { pcBalance: string; coinBalance: string };
 
 const Swap = () => {
-  const {isOpen,onOpen,onOpenChange,onClose} = useDisclosure()
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [isLoading, setIsLoading] = useState(false);
   const connectedWallet = useAnchorWallet();
   const { connection } = useConnection();
-  const [tx,setTx] = useState("");
+  const [tx, setTx] = useState("");
   const [values, setValues] = useState({
     pcQty: "0.00",
     coinQty: "0.00",
@@ -49,25 +52,26 @@ const Swap = () => {
     coinBalance: "0.00",
   });
 
-  const closeModal = ()=> {
+  const closeModal = () => {
     setTx("");
+    setValues({ pcQty: "0.00", coinQty: "0.00", conversionRate: "0.00" });
     onClose();
-  }
+  };
+
   const previewSwap = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     const oraclePrice = (await axios.get("/api/price")).data.price;
     const conversionRate = Number(oraclePrice);
     setValues((prev) => ({
       ...prev,
-      coinQty: (Number(prev.pcQty) / conversionRate).toFixed(6),
-      conversionRate: conversionRate.toString(),
+      coinQty: (Number(prev.pcQty) / (conversionRate * 1.025)).toFixed(6),
+      conversionRate: (Number(conversionRate) * 1.025).toString(),
     }));
-    setIsLoading(false)
+    setIsLoading(false);
   };
 
   const getPcBalance = async () => {
     try {
-
       if (!connectedWallet?.publicKey) {
         alert("No wallet found");
         return;
@@ -113,6 +117,13 @@ const Swap = () => {
     try {
       if (!connectedWallet) throw new Error("Wallet Not Found!");
 
+
+
+      // const aggregatorAccount = new AggregatorAccount(
+      //   switchboardProgram,
+      //   DATA_FEE_PUBLIC_KEY
+      // );
+      //const aggregatorState = await aggregatorAccount.loadData();
       const provider = new AnchorProvider(
         connection,
         connectedWallet,
@@ -142,13 +153,21 @@ const Swap = () => {
         true
       );
 
-      console.log({ values });
+      const price_feed = new PublicKey("GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR");
+      const oracle = new PublicKey("SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f");
+
+         
+      const priceRes = await axios.get("api/price");
+      const price = Number(priceRes.data.price) * 1.025 
+      const pcQty = Number(price) * Number(values.coinQty)
+      console.log(pcQty)
+      
       const tx = await program.methods
         .newOrder(
           { bid: {} },
-          new BN(Number(values.conversionRate)),
+          new BN(Number(price)),
           new BN(Number(values.coinQty)),
-          new BN(Number(values.pcQty)),
+          new BN(Number(pcQty)),
           { limit: {} }
         )
         .accounts({
@@ -164,16 +183,18 @@ const Swap = () => {
           reqQ: marketConstants?.reqQ,
           eventQ: marketConstants?.eventQ,
           authority: connectedWallet.publicKey,
+          switchboard:oracle,
+          aggregator:price_feed,  
         })
         .rpc();
       console.log("Swapped", tx);
-      toast("Swap successfull ✅")
+      toast("Swap successfull ✅");
       setTx(tx);
-      onOpen() // open Modal
+      onOpen(); // open Modal
       getPcBalance();
       getCoinBalance();
     } catch (err: any) {
-      toast.error("Something went wrong while Swapping !")
+      toast.error("Something went wrong while Swapping !");
       console.error(err);
     }
   };
@@ -185,6 +206,10 @@ const Swap = () => {
     }
   }, [selectedMarket, connectedWallet]);
 
+  const createmarket = async () => {
+    const res = await axios.get("/api/createMarket");
+    console.log(res.data);
+  };
   return (
     <div className="overflow-hidden relative border border-default-200 rounded-2xl bg-gradient-to-br max-w-md w-full from-default-50 to-black">
       <div className="p-6  space-y-4">
@@ -281,6 +306,7 @@ const Swap = () => {
         >
           {values.conversionRate !== "0.00" ? "SWAP" : "Preview Swap"}
         </Button>
+
       </div>
 
       {values.conversionRate !== "0.00" && (
@@ -300,23 +326,42 @@ const Swap = () => {
         </div>
       )}
 
-      <Modal backdrop="blur"  isOpen={isOpen} onOpenChange={onOpenChange} onClose={closeModal}>
+      <Modal
+        backdrop="blur"
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        onClose={closeModal}
+      >
         <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            Swap Successfull ✅
+          </ModalHeader>
+          <ModalBody className="text-gray-300">
+            <p>
+              {selectedMarket.pcToken} tokens paid : {values.pcQty}
+            </p>
+            <p>
+              {selectedMarket.coinToken} tokens received : {values.coinQty}
+            </p>
 
-              <ModalHeader className="flex flex-col gap-1">Swap Successfull ✅</ModalHeader>
-              <ModalBody>
-               Tx: <span className="text-gray-400"> {tx}</span>
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={closeModal}>
-                  Close
-                </Button>
-                <Link className={button({color:"primary"})} color="primary" target="_blank"  href={`https://solscan.io/tx/${tx}?cluster=devnet`}>
-                  See Tx in Explorer
-                </Link>
-              </ModalFooter>
-
-
+            <p className="">
+              {" "}
+              Tx Hash : {tx.slice(0, 15)}....{tx.slice(-15)}
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="danger" variant="light" onPress={closeModal}>
+              Close
+            </Button>
+            <Link
+              className={button({ color: "primary" })}
+              color="primary"
+              target="_blank"
+              href={`https://solscan.io/tx/${tx}?cluster=devnet`}
+            >
+              See Tx in Explorer
+            </Link>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </div>

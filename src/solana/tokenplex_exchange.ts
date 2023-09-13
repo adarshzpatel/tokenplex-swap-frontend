@@ -88,8 +88,30 @@ export type TokenplexExchange = {
       ]
     },
     {
+      "name": "getPrice",
+      "accounts": [
+        {
+          "name": "pricefeed",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "returns": "f64"
+    },
+    {
       "name": "newOrder",
       "accounts": [
+        {
+          "name": "aggregator",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "switchboard",
+          "isMut": false,
+          "isSigner": false
+        },
         {
           "name": "openOrders",
           "isMut": true,
@@ -806,8 +828,30 @@ export const IDL: TokenplexExchange = {
       ]
     },
     {
+      "name": "getPrice",
+      "accounts": [
+        {
+          "name": "pricefeed",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "returns": "f64"
+    },
+    {
       "name": "newOrder",
       "accounts": [
+        {
+          "name": "aggregator",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "switchboard",
+          "isMut": false,
+          "isSigner": false
+        },
         {
           "name": "openOrders",
           "isMut": true,

@@ -1,5 +1,5 @@
 import { getMarketConstants } from "@/hooks/getMarketConstants";
-import { PROGRAM_ID, markets } from "@/solana/config";
+import { OWNER_KEYPAIR, PROGRAM_ID, markets } from "@/solana/config";
 import { IDL } from "@/solana/tokenplex_exchange";
 import { fetchTokenBalance } from "@/solana/utils";
 import {
@@ -19,6 +19,7 @@ import { AnchorProvider, BN, Program, web3 } from "@project-serum/anchor";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
+import axios from "axios";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -31,6 +32,7 @@ const Liquidity = () => {
   const { connection } = useConnection();
   const [values, setValues] = useState({
     coinQty: "0.0",
+    conversionRate:"0.0"
   });
 
   const [marketName, setMarketName] = useState<Selection>(
@@ -56,6 +58,7 @@ const Liquidity = () => {
     onClose();
     setValues({
       coinQty: "0.0",
+      conversionRate:"0.0"
     })
   };
   // const getPcBalance = async () => {
@@ -135,8 +138,16 @@ const Liquidity = () => {
         true
       );
 
+      const price_feed = new PublicKey("GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR");
+      const oracle = new PublicKey("SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f");
+      
+      const priceRes = await axios.get("api/price");
+      const price = Number(priceRes.data.price) * 1.025 
+      const pcQty = Number(price) * Number(values.coinQty)
+      console.log(pcQty)
+      
       const tx = await program.methods
-        .newOrder({ ask: {} }, new BN(1), new BN(values.coinQty), new BN(1), {
+        .newOrder({ ask: {} }, new BN(price), new BN(values.coinQty), new BN(pcQty), {
           limit: {},
         })
         .accounts({
@@ -151,6 +162,8 @@ const Liquidity = () => {
           asks: marketConstants?.asks,
           reqQ: marketConstants?.reqQ,
           eventQ: marketConstants?.eventQ,
+          switchboard:oracle,
+          aggregator:price_feed,
           authority: connectedWallet.publicKey,
         })
         .rpc();
@@ -165,6 +178,34 @@ const Liquidity = () => {
       console.error(err);
     }
   };
+
+  // const getEventQ = async () => {
+  //   if(!connectedWallet) return;
+  //   const provider = new AnchorProvider(
+  //     connection,
+  //     connectedWallet,
+  //     AnchorProvider.defaultOptions()
+  //   );
+
+  //   const program = new Program(IDL, PROGRAM_ID, provider);
+  //   const marketPda = new PublicKey(selectedMarket?.market);
+  //   const marketConstants = await getMarketConstants(marketPda, program);
+  //   if (!marketConstants) return;
+
+  //   const [openOrdersPda] = await PublicKey.findProgramAddress(
+  //     [
+  //       Buffer.from('open-orders', 'utf-8'),
+  //       marketPda.toBuffer(),
+  //       OWNER_KEYPAIR.publicKey.toBuffer(),
+  //     ],
+  //     program.programId,
+  //   );
+
+  //   const eventQ = await program.account.eventQueue.fetch(marketConstants.eventQ);
+  //   if(!eventQ.buf) return
+  //   const myOrders = (eventQ?.buf as any[]).filter(item => item.owner.toString() == openOrdersPda.toString());
+  //   console.log(myOrders[0].nativeQtyReleased.toString())
+  // }
 
   useEffect(() => {
     if (connectedWallet && selectedMarket) {

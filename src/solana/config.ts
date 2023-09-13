@@ -4,7 +4,7 @@ import { Market } from "./types";
 export const DATA_FEE_PUBLIC_KEY =
   "FoBK7CgwobLrEfGC8MaGFpYxhucCo1DBhAm5EEvUPD2i";
 
-export const PROGRAM_ID = "EK1tZCBzCu4iHXucWQjwK2XAyDb5diLiNoP5HUCiAn8h";
+export const PROGRAM_ID = "84eo5XmbNUVgW32SxwA3Hzc8mH94HdyWg2m5bDPGT863";
 export const rpcUrl = "";
 export const OWNER_KEYPAIR = Keypair.fromSecretKey(
   Uint8Array.from([
@@ -15,14 +15,15 @@ export const OWNER_KEYPAIR = Keypair.fromSecretKey(
   ])
 );
 
-export const markets:Market[] = [
+export const markets: Market[] = [
   {
-    market: "2236vbru7CFpCk5eNyRFgpC21nXCHH7ds3saQ7TjwDww",
+    market: "E77GFGxtdzThH1G8KKTjKq3mcm123TG2kRadChqWS3X9",
     pcToken: "USDC",
     coinToken: "PEPE",
-    pcMint: "A8jater2464KWT5maWBaSfU2L1xSU66D5iBjq7hMzBxx",
-    coinMint: "8fH3g9Vo9zPvsNhQerRpwDySmNU5qy9HSodiRsARL3Wc",
+    coinMint: "FbeAtEmAxny8EyP64mkWmPN1rYsSYb71ewXxCWgKjojR",
+    pcMint: "GuGQg1jCV6PBDCEdXzcjSmrQCFQnHdXsup6iHg25kASD",
     pcLotSize: 1000000,
     coinLotSize: 1000000000,
   },
+ 
 ];
