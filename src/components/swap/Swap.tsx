@@ -157,7 +157,7 @@ const Swap = () => {
       );
 
 
-      const _price = Math.round(Number(values.conversionRate) * 1.025 );
+      const _price = Math.round(Number(values.conversionRate) * 1.025 * 1000000);
       const _pcQty = Number(values.pcQty) * 1000000;
       const _coinQty = Math.round(_pcQty / _price) + 1
 
