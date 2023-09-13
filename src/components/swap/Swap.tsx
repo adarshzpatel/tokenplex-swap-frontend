@@ -64,7 +64,7 @@ const Swap = () => {
     const conversionRate = Number(oraclePrice);
     setValues((prev) => ({
       ...prev,
-      coinQty: (Number(prev.pcQty) / (conversionRate * 1.025)).toFixed(6),
+      coinQty: (Number(prev.pcQty) / (conversionRate * 1.025)).toString(),
       conversionRate: (Number(conversionRate) * 1.025).toString(),
     }));
     setIsLoading(false);
@@ -160,14 +160,15 @@ const Swap = () => {
       const priceRes = await axios.get("api/price");
       const price = Number(priceRes.data.price) * 1.025 
       const pcQty = Number(price) * Number(values.coinQty)
-      console.log(pcQty)
+      console.log("Calculated pc ",pcQty )
+      console.log({values})
       
       const tx = await program.methods
         .newOrder(
           { bid: {} },
-          new BN(Number(price)),
-          new BN(Number(values.coinQty)),
-          new BN(Number(pcQty)),
+          new BN(Number(10)),
+          new BN(Number(1)),
+          new BN(Number(10)),
           { limit: {} }
         )
         .accounts({
@@ -187,6 +188,7 @@ const Swap = () => {
           aggregator:price_feed,  
         })
         .rpc();
+
       console.log("Swapped", tx);
       toast("Swap successfull ✅");
       setTx(tx);
