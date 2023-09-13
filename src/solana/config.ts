@@ -14,11 +14,14 @@ export const OWNER_KEYPAIR = Keypair.fromSecretKey(
 
 export const markets: Market[] = [
   {
-    market: "ByvgnkUWvcmBik47CFNt8R2xhF4hbwhcV72mJHCQ2wh1",
+    //market: "ByvgnkUWvcmBik47CFNt8R2xhF4hbwhcV72mJHCQ2wh1",
+    market: "7mLjDb5CuJQwNfYQtP7NvCLSHiCe9dGVBZNuZPrxM6dX",
+    pcMint: "AkgHVrLvW5rBca7HSghzwLZyaDYebgZKb4pkAiWgEC7r",
+    coinMint: "DG7xQ4T7CzNuHm2HFFeC4ax3iZEkDXzRTD68rxwNUd61",
     pcToken: "USDC",
     coinToken: "PEPE",
-    coinMint: "aAZW6P6dpfX4DygWRDkj1vLPqtJBbY4EHPF7WwaCcwW",
-    pcMint: "3D5Ahi5C74V6hjQmPMhHs5hbMpdVhxqNPZutbftxn6jw",
+    //coinMint: "aAZW6P6dpfX4DygWRDkj1vLPqtJBbY4EHPF7WwaCcwW",
+    //pcMint: "3D5Ahi5C74V6hjQmPMhHs5hbMpdVhxqNPZutbftxn6jw",
     pcLotSize: 1000000,
     coinLotSize: 1000000000,
     priceFeedPubKey: "GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR",
