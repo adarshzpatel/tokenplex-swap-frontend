@@ -62,11 +62,14 @@ const Swap = () => {
     setIsLoading(true);
     const oraclePrice = (await axios.get("/api/price")).data.price;
     const conversionRate = Number(oraclePrice);
+
     setValues((prev) => ({
       ...prev,
+      // coinQty: (Number(prev.pcQty) * (conversionRate * 1.025)).toString(),
       coinQty: (Number(prev.pcQty) / (conversionRate * 1.025)).toString(),
       conversionRate: (Number(conversionRate) * 1.025).toString(),
     }));
+
     setIsLoading(false);
   };
 
@@ -159,16 +162,17 @@ const Swap = () => {
          
       const priceRes = await axios.get("api/price");
       const price = Number(priceRes.data.price) * 1.025 
-      const pcQty = Number(price) * Number(values.coinQty)
+      const pcQty = 10;
+      const coinQty = pcQty / price;
       console.log("Calculated pc ",pcQty )
       console.log({values})
       
       const tx = await program.methods
         .newOrder(
           { bid: {} },
-          new BN(Number(10)),
-          new BN(Number(1)),
-          new BN(Number(10)),
+          new BN(Number(price)),
+          new BN(Number(pcQty)),
+          new BN(Number(coinQty)),
           { limit: {} }
         )
         .accounts({
@@ -308,7 +312,7 @@ const Swap = () => {
         >
           {values.conversionRate !== "0.00" ? "SWAP" : "Preview Swap"}
         </Button>
-
+              <Button onClick={async()=>await axios.get("/api/createMarket")}>create mareket</Button>
       </div>
 
       {values.conversionRate !== "0.00" && (
