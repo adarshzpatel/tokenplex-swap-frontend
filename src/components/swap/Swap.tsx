@@ -156,11 +156,12 @@ const Swap = () => {
         true
       );
 
-      // const priceRes = await axios.get(`/api/price?dataFeedPubKey=${selectedMarket.dataFeedPubKey}`);
+
       const _price = Number(values.conversionRate) * 1.025 * 1000000;
       const _pcQty = Number(values.pcQty) * 1000000;
       const _coinQty = Math.round(_pcQty / _price) + 1
 
+      
       const limitPrice = new BN(_price)
       const pcQty = new BN(_pcQty);
       const coinQty = new BN(_coinQty);

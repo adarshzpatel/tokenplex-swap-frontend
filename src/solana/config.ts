@@ -14,16 +14,15 @@ export const OWNER_KEYPAIR = Keypair.fromSecretKey(
 
 export const markets: Market[] = [
   {
-    market: "6m5p2wCd4e2bhbYc6f37FLHABGYxrkGUGPmwSSo97aVq",
+    market: "ByvgnkUWvcmBik47CFNt8R2xhF4hbwhcV72mJHCQ2wh1",
     pcToken: "USDC",
     coinToken: "PEPE",
-    coinMint: "F2SJhj95iQUT6sn2JRYMJaDqjm7D96sUYW8p4ycRbvsV",
-    pcMint: "73EnT6vwH2iw9pgDUnyMPmutFozaCSFNRF5StiHJ74jU",
+    coinMint: "aAZW6P6dpfX4DygWRDkj1vLPqtJBbY4EHPF7WwaCcwW",
+    pcMint: "3D5Ahi5C74V6hjQmPMhHs5hbMpdVhxqNPZutbftxn6jw",
     pcLotSize: 1000000,
     coinLotSize: 1000000000,
-    priceFeedPubKey:"GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR",
-    oraclePubKey:"SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f",
-    dataFeedPubKey:"FoBK7CgwobLrEfGC8MaGFpYxhucCo1DBhAm5EEvUPD2i"
+    priceFeedPubKey: "GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR",
+    oraclePubKey: "SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f",
+    dataFeedPubKey: "FoBK7CgwobLrEfGC8MaGFpYxhucCo1DBhAm5EEvUPD2i",
   },
 ];
-
