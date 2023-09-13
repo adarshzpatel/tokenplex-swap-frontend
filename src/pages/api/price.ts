@@ -4,15 +4,17 @@ import {
   AggregatorAccount,
   SwitchboardProgram,
 } from "@switchboard-xyz/solana.js";
-import { Connection, clusterApiUrl } from "@solana/web3.js";
+import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { AggregatorAccountData } from "@switchboard-xyz/solana.js/generated";
-import { DATA_FEE_PUBLIC_KEY } from "@/solana/config";
+
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<any>
 ) {
   try {
+    const dataFeedPubKey = req.query.dataFeedPubKey as string 
+
     const program = await SwitchboardProgram.load(
       "devnet",
       new Connection(clusterApiUrl("devnet"), { commitment: "confirmed" })
@@ -20,7 +22,7 @@ export default async function handler(
 
     const aggregatorAccount = new AggregatorAccount(
       program,
-      DATA_FEE_PUBLIC_KEY
+      new PublicKey(dataFeedPubKey)
     );
 
     const aggregatorState: AggregatorAccountData = await aggregatorAccount.loadData();

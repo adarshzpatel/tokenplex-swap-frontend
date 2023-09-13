@@ -138,10 +138,9 @@ const Liquidity = () => {
         true
       );
 
-      const price_feed = new PublicKey("GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR");
-      const oracle = new PublicKey("SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f");
+  
       
-      const priceRes = await axios.get("api/price");
+      const priceRes = await axios.get(`api/price?dataFeedPubKey=${selectedMarket.dataFeedPubKey}`);
       const price = Number(priceRes.data.price) * 1.025 
       const pcQty = Number(price) * Number(values.coinQty)
       console.log(pcQty)
@@ -162,8 +161,8 @@ const Liquidity = () => {
           asks: marketConstants?.asks,
           reqQ: marketConstants?.reqQ,
           eventQ: marketConstants?.eventQ,
-          switchboard:oracle,
-          aggregator:price_feed,
+          switchboard:selectedMarket.oraclePubKey,
+          aggregator:selectedMarket.priceFeedPubKey,
           authority: connectedWallet.publicKey,
         })
         .rpc();

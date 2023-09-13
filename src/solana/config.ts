@@ -1,9 +1,6 @@
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { Market } from "./types";
 
-export const DATA_FEE_PUBLIC_KEY =
-  "FoBK7CgwobLrEfGC8MaGFpYxhucCo1DBhAm5EEvUPD2i";
-
 export const PROGRAM_ID = "84eo5XmbNUVgW32SxwA3Hzc8mH94HdyWg2m5bDPGT863";
 export const rpcUrl = "";
 export const OWNER_KEYPAIR = Keypair.fromSecretKey(
@@ -17,12 +14,16 @@ export const OWNER_KEYPAIR = Keypair.fromSecretKey(
 
 export const markets: Market[] = [
   {
-    market: "97EbTcxHUAqDX2eKnJ5RU4qVVSvQ3teaNjtLZcf7UF6q",
+    market: "6m5p2wCd4e2bhbYc6f37FLHABGYxrkGUGPmwSSo97aVq",
     pcToken: "USDC",
     coinToken: "PEPE",
-    coinMint: "Hx4ZRo3zGs2aBA144f4CLfi5XYaLqHNci6xKrXGr1VQz",
-    pcMint: "J4dRdQyWvRZ7oSrhNfU1EwtKf98r7HupVhx9XJwLApYq",
+    coinMint: "F2SJhj95iQUT6sn2JRYMJaDqjm7D96sUYW8p4ycRbvsV",
+    pcMint: "73EnT6vwH2iw9pgDUnyMPmutFozaCSFNRF5StiHJ74jU",
     pcLotSize: 1000000,
     coinLotSize: 1000000000,
+    priceFeedPubKey:"GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR",
+    oraclePubKey:"SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f",
+    dataFeedPubKey:"FoBK7CgwobLrEfGC8MaGFpYxhucCo1DBhAm5EEvUPD2i"
   },
 ];
+

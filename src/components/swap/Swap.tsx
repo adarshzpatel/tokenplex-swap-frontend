@@ -1,5 +1,5 @@
 import { getMarketConstants } from "@/hooks/getMarketConstants";
-import { DATA_FEE_PUBLIC_KEY, PROGRAM_ID, markets } from "@/solana/config";
+import { PROGRAM_ID, markets } from "@/solana/config";
 import { IDL } from "@/solana/tokenplex_exchange";
 import { fetchTokenBalance } from "@/solana/utils";
 import {
@@ -60,16 +60,19 @@ const Swap = () => {
 
   const previewSwap = async () => {
     setIsLoading(true);
-    const oraclePrice = (await axios.get("/api/price")).data.price;
-    const conversionRate = Number(oraclePrice);
+    const oraclePrice = (await axios.get(`/api/price?dataFeedPubKey=${selectedMarket.dataFeedPubKey}`)).data.price;
+    const conversionRate = Number(oraclePrice) * 1.025;
 
     setValues((prev) => ({
       ...prev,
       // coinQty: (Number(prev.pcQty) * (conversionRate * 1.025)).toString(),
       coinQty: (Number(prev.pcQty) / (conversionRate * 1.025)).toString(),
-      conversionRate: (Number(conversionRate) * 1.025).toString(),
+      conversionRate: conversionRate.toString(),
     }));
 
+    const coinQty = new BN(
+      Math.floor(Number(values.coinQty) * selectedMarket.coinLotSize)
+    );
     setIsLoading(false);
   };
 
@@ -85,7 +88,6 @@ const Swap = () => {
         new PublicKey(selectedMarket.pcMint),
         connection
       );
-
       setBalances((prev) => ({
         ...prev,
         pcBalance: (Number(pcBalance) / selectedMarket.pcLotSize).toFixed(2),
@@ -120,8 +122,6 @@ const Swap = () => {
     try {
       if (!connectedWallet) throw new Error("Wallet Not Found!");
 
-
-
       // const aggregatorAccount = new AggregatorAccount(
       //   switchboardProgram,
       //   DATA_FEE_PUBLIC_KEY
@@ -138,7 +138,7 @@ const Swap = () => {
       const marketConstants = await getMarketConstants(marketPda, program);
       if (!marketConstants) return;
 
-      console.log("MARKET CONSTANTS", JSON.stringify(marketConstants, null, 2));
+      // console.log("MARKET CONSTANTS", JSON.stringify(marketConstants, null, 2));
       const [openOrdersPda] = await web3.PublicKey.findProgramAddress(
         [
           Buffer.from("open-orders", "utf-8"),
@@ -156,25 +156,23 @@ const Swap = () => {
         true
       );
 
-      const price_feed = new PublicKey("GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR");
-      const oracle = new PublicKey("SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f");
+      // const priceRes = await axios.get(`/api/price?dataFeedPubKey=${selectedMarket.dataFeedPubKey}`);
+      const _price = Number(values.conversionRate) * 1.025 * 1000000;
+      const _pcQty = Number(values.pcQty) * 1000000;
+      const _coinQty = Math.round(_pcQty / _price) + 1
 
-         
-      const priceRes = await axios.get("api/price");
-      const price = Number(priceRes.data.price) * 1.025 
-      const pcQty = 10;
-      const coinQty = pcQty / price;
-      console.log("Calculated pc ",pcQty )
-      console.log({values})
+      const limitPrice = new BN(_price)
+      const pcQty = new BN(_pcQty);
+      const coinQty = new BN(_coinQty);
+      
+      console.log({
+        limitPrice: limitPrice.toString(),
+        coinQty: coinQty.toString(),
+        pcQty: pcQty.toString(),
+      });
       
       const tx = await program.methods
-        .newOrder(
-          { bid: {} },
-          new BN(Number(price)),
-          new BN(Number(pcQty)),
-          new BN(Number(coinQty)),
-          { limit: {} }
-        )
+        .newOrder({ bid: {} }, limitPrice, coinQty, pcQty, { limit: {} })
         .accounts({
           openOrders: openOrdersPda,
           market: marketPda,
@@ -188,8 +186,8 @@ const Swap = () => {
           reqQ: marketConstants?.reqQ,
           eventQ: marketConstants?.eventQ,
           authority: connectedWallet.publicKey,
-          switchboard:oracle,
-          aggregator:price_feed,  
+          switchboard: selectedMarket.oraclePubKey,
+          aggregator: selectedMarket.priceFeedPubKey,
         })
         .rpc();
 
@@ -312,7 +310,9 @@ const Swap = () => {
         >
           {values.conversionRate !== "0.00" ? "SWAP" : "Preview Swap"}
         </Button>
-              <Button onClick={async()=>await axios.get("/api/createMarket")}>create mareket</Button>
+        {/* <Button onClick={async () => await axios.get("/api/createMarket")}>
+          create mareket
+        </Button> */}
       </div>
 
       {values.conversionRate !== "0.00" && (

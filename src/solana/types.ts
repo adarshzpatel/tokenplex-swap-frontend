@@ -19,4 +19,7 @@ export type Market = {
   coinMint: string 
   pcLotSize: number;
   coinLotSize: number;
+  priceFeedPubKey:string ;
+  oraclePubKey:string
+  dataFeedPubKey:string
 };
