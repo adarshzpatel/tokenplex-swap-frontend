@@ -164,6 +164,10 @@ const Swap = () => {
       const _pcQty = Number(values.pcQty) * 1000000
       const _coinQty = Math.round(_pcQty / _price)
 
+      const _price = 1000
+      const _pcQty = 1
+      const _coinQty = 1000
+
 
       
       const limitPrice = new BN(_price)
