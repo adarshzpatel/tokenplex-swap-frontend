@@ -141,15 +141,15 @@ const Liquidity = () => {
   
       
       const priceRes = await axios.get(`api/price?dataFeedPubKey=${selectedMarket.dataFeedPubKey}`);
-      //const price = Number(priceRes.data.price) * 1.025 
-      //const pcQty = Number(price) * Number(values.coinQty)
-      //console.log(pcQty)
+      const price = Number(priceRes.data.price) * 1.025 * 1000000
+      const pcQty = Number(price) * Number(values.coinQty)
+      console.log(pcQty)
       
-      const price = 1000
-      const coinQty = 1
-      const pcQty = 1000
+      //const price = 1000
+      //const coinQty = 1
+      //const pcQty = 1000
       const tx = await program.methods
-        .newOrder({ ask: {} }, new BN(price), new BN(coinQty), new BN(pcQty), {
+        .newOrder({ ask: {} }, new BN(price), new BN(values.coinQty), new BN(pcQty), {
           limit: {},
         })
         .accounts({
