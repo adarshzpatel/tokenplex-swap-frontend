@@ -157,9 +157,13 @@ const Swap = () => {
       );
 
 
-      const _price = Number(values.conversionRate) * 1000000;
-      const _pcQty = Number(values.pcQty) * 1000000;
-      const _coinQty = Math.round(_pcQty / _price) + 1
+      //const _price = Number(values.conversionRate) * 1000000;
+     // const _pcQty = Number(values.pcQty) * 1000000;
+     // const _coinQty = Math.round(_pcQty / _price) + 1
+      const _price = Number(1000)
+      const _pcQty = Number(values.pcQty) * 1000000
+      const _coinQty = Math.round(_pcQty / _price)
+
 
       
       const limitPrice = new BN(_price)

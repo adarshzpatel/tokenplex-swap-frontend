@@ -15,15 +15,9 @@ export const OWNER_KEYPAIR = Keypair.fromSecretKey(
 export const markets: Market[] = [
   {
     //market: "ByvgnkUWvcmBik47CFNt8R2xhF4hbwhcV72mJHCQ2wh1",
-    market: "7mLjDb5CuJQwNfYQtP7NvCLSHiCe9dGVBZNuZPrxM6dX",
-    //market: "4f11se2xUQwRjwNPLUtf5yWAxTqw33fh2eQ6oB64vfPq",
-    //coinMint: "E8KFr5DKEdwxiMwPrH9fwbqEM7ja6gHA1QSQB3Y2oYV3",
-    //pcMint: "xQT1jw1nzA3MpH8J1Jo13DuFH9DZvHpLuhESF7UQkH4",
-    //market: "HpFCPGirpEshRphfvtQezovqwaPSSXs2bSQxLNSJGdYn",
-    //coinMint: "AoQXhocWVM9hfh2PNX5qWuFRJ8NnA7nRExXRYQKPWceY",
-    //pcMint: "EvdsW63UpR9XAkp28SE2JX4SNdu3qabNPR5tK2HQdjr9",
-    pcMint: "AkgHVrLvW5rBca7HSghzwLZyaDYebgZKb4pkAiWgEC7r",
-    coinMint: "DG7xQ4T7CzNuHm2HFFeC4ax3iZEkDXzRTD68rxwNUd61",
+    market: "HpFCPGirpEshRphfvtQezovqwaPSSXs2bSQxLNSJGdYn",
+    coinMint: "AoQXhocWVM9hfh2PNX5qWuFRJ8NnA7nRExXRYQKPWceY",
+    pcMint: "EvdsW63UpR9XAkp28SE2JX4SNdu3qabNPR5tK2HQdjr9",
     pcToken: "USDC",
     coinToken: "PEPE",
     //coinMint: "aAZW6P6dpfX4DygWRDkj1vLPqtJBbY4EHPF7WwaCcwW",
