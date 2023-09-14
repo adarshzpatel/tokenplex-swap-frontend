@@ -143,7 +143,7 @@ const Liquidity = () => {
       const priceRes = await axios.get(`api/price?dataFeedPubKey=${selectedMarket.dataFeedPubKey}`);
       //const price = Number(priceRes.data.price) * 1.025 
       //const pcQty = Number(price) * Number(values.coinQty)
-      console.log(pcQty)
+      //console.log(pcQty)
       
       const price = 1000
       const coinQty = 1
