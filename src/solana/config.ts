@@ -15,9 +15,9 @@ export const OWNER_KEYPAIR = Keypair.fromSecretKey(
 export const markets: Market[] = [
   {
     //market: "ByvgnkUWvcmBik47CFNt8R2xhF4hbwhcV72mJHCQ2wh1",
-    market: "HpFCPGirpEshRphfvtQezovqwaPSSXs2bSQxLNSJGdYn",
-    coinMint: "AoQXhocWVM9hfh2PNX5qWuFRJ8NnA7nRExXRYQKPWceY",
-    pcMint: "EvdsW63UpR9XAkp28SE2JX4SNdu3qabNPR5tK2HQdjr9",
+    market: "4D5LENKeUC5e6cMpx1zu8taQFsPZNgzQRJGMeFXbbrSt",
+    coinMint: "Bd1nUvogLf3xaKrthpF6fmfafTBWw8U3RggYQHtLm8gp",
+    pcMint: "AVUVm8v2N2ReFvNXd2DxG9893p5KbgAoj5hZ4fsXRVeL",
     pcToken: "USDC",
     coinToken: "PEPE",
     //coinMint: "aAZW6P6dpfX4DygWRDkj1vLPqtJBbY4EHPF7WwaCcwW",
